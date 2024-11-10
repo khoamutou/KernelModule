@@ -7,5 +7,12 @@
 int main()
 {
 	int f = open("/proc/my-driver", O_RDWR);
-	write(f , "Test C", 6);
+	while (1)
+	{
+		write(f , "on", 2);
+		usleep(500000);
+		write(f , "off", 3);
+		usleep(500000);
+	}
+	
 }
