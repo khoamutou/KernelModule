@@ -6,7 +6,7 @@
 #include <linux/cdev.h>
 #include <linux/device.h>
 
-#define DRIVER_NAME	"my-driver"
+#define DRIVER_NAME		"my-driver"
 #define DRIVER_CLASS	"MyModuleClass"
 
 static dev_t my_device_nr;
@@ -41,16 +41,17 @@ static ssize_t driver_write(struct file *File, const char *user_buffer, size_t s
         
 }
 
-static struct proc_ops fops = {
-        .proc_open = driver_open,
-        .proc_release = driver_close,
-        .proc_read =  driver_read,
-        .proc_write = driver_write
+static struct  file_operations fops = {
+		.owner = THIS_MODULE,
+        .open = driver_open,
+        .release = driver_close,
+        .read =  driver_read,
+        .write = driver_write
 };
 
 static int my_driver_init(void)
 {
-        printk("Hello Device Driver\n");
+    printk("Hello Device Driver\n");
 
 	if (alloc_chrdev_region(&my_device_nr, 0, 1, DRIVER_NAME) < 0) 
 	{
@@ -58,26 +59,26 @@ static int my_driver_init(void)
 		return -1;
 	}
 
-	printk("my-driver: Major: %d, Minor: %d \n ", my_driver_nr >> 20, my_driver_nr & 0xfffff);
+	printk("my-driver: Major: %d, Minor: %d\n", my_device_nr >> 20, my_device_nr & 0xfffff);
 
-	if ((my_class = class_create(THIS_MODULE, DRIVER_CLASS)) == NULL)
+	if ((my_class = class_create( DRIVER_CLASS)) == NULL)
 	{
-		printk("Device class can not be create");
+		printk("Device class can not be create\n");
 		unregister_chrdev_region(my_device_nr, 1);
 		return -1;
 	}
 
 	if (device_create(my_class, NULL, my_device_nr, NULL, DRIVER_NAME) == NULL)
 	{
-		printk("Can not be create device file");
+		printk("Can not be create device file\n");
 		class_destroy(my_class);
 		return -1;
 	}
 
-	cdev_init(&my_divice, &fops);
+	cdev_init(&my_device, &fops);
 	if (cdev_add(&my_device, my_device_nr, 1) == 1)
 	{
-		printk("Register device fail");
+		printk("Register device fail\n");
 		device_destroy(my_class, my_device_nr);
 		return -1;
 	}
@@ -87,7 +88,7 @@ static int my_driver_init(void)
 
 static void my_driver_exit(void)
 {
-        printk("Goodbye Kernel\n");
+    printk("Goodbye Kernel\n");
 
 	cdev_del(&my_device);
 	device_destroy(my_class, my_device_nr);
