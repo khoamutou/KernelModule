@@ -1,6 +1,6 @@
 #include <linux/module.h>
 #include <linux/init.h>
-#include <linux/uacess.h>
+#include <linux/uaccess.h>
 #include <linux/kernel.h>
 #include <linux/fs.h>
 #include <linux/proc_fs.h>
@@ -21,14 +21,14 @@ static int driver_close(struct inode *device_file, struct file * instance)
 
 static ssize_t driver_read(struct file *File, char *user_buffer, size_t size, loff_t *offs)
 {
-        return copy_to_user(user_buffer, "Hello user\n",11)?0:11;
+        return copy_to_user(user_buffer, "Hello user\n", 11) ? 0 : 11;
 }
 
 static ssize_t driver_write(struct file *File, const char *user_buffer, size_t size, loff_t *offs)
 {
         char user_data[10];
         memset(user_data, 0, 10);
-        if ( copy_from_user(user_data, user_buffer, size))    ;
+        if (copy_from_user(user_data, user_buffer, size))
                 return 0;
         printk("user write : %s", user_data);
         return size;
