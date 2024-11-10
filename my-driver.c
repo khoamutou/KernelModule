@@ -3,9 +3,15 @@
 #include <linux/uaccess.h>
 #include <linux/kernel.h>
 #include <linux/fs.h>
-#include <linux/proc_fs.h>
+#include <linux/cdev.h>
+#include <linux/device.h>
 
-static struct proc_dir_entry *driver_proc = NULL;
+#define DRIVER_NAME	"my-driver"
+#define DRIVER_CLASS	"MyModuleClass"
+
+static dev_t my_device_nr;
+static struct class *my_class;
+static struct cdev my_device;
 
 static int driver_open(struct inode *device_file, struct file * instance)
 {
@@ -44,18 +50,49 @@ static struct proc_ops fops = {
 
 static int my_driver_init(void)
 {
-        printk("Hello Kernel\n");
-        driver_proc = proc_create("my-driver", 0666, NULL, &fops);
-        if (driver_proc == NULL)
-                return -1;
-        else
-                return 0;
+        printk("Hello Device Driver\n");
+
+	if (alloc_chrdev_region(&my_device_nr, 0, 1, DRIVER_NAME) < 0) 
+	{
+		printk("Device could not be allocated\n");
+		return -1;
+	}
+
+	printk("my-driver: Major: %d, Minor: %d \n ", my_driver_nr >> 20, my_driver_nr & 0xfffff);
+
+	if ((my_class = class_create(THIS_MODULE, DRIVER_CLASS)) == NULL)
+	{
+		printk("Device class can not be create");
+		unregister_chrdev_region(my_device_nr, 1);
+		return -1;
+	}
+
+	if (device_create(my_class, NULL, my_device_nr, NULL, DRIVER_NAME) == NULL)
+	{
+		printk("Can not be create device file");
+		class_destroy(my_class);
+		return -1;
+	}
+
+	cdev_init(&my_divice, &fops);
+	if (cdev_add(&my_device, my_device_nr, 1) == 1)
+	{
+		printk("Register device fail");
+		device_destroy(my_class, my_device_nr);
+		return -1;
+	}
+
+        return 0;
 }
 
 static void my_driver_exit(void)
 {
         printk("Goodbye Kernel\n");
-        proc_remove(driver_proc);
+
+	cdev_del(&my_device);
+	device_destroy(my_class, my_device_nr);
+	class_destroy(my_class);
+	unregister_chrdev_region(my_device_nr, 1);
 }
 
 module_init(my_driver_init);
